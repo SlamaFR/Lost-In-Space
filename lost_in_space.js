@@ -13,10 +13,16 @@ const DEFAULT_WIDTH = 1;
  * Dessine toutes les entités du jeu.
  */
 function draw(canvas) {
-    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    let context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
     entities.player.draw();
     entities.enemies.forEach(e => e.draw());
     entities.projectiles.forEach(p => p.draw());
+
+    context.fillStyle = 'green';
+    context.fillText("FPS: " + Math.round(1 / delta), 10, 20);
+    context.fillText("Avg latency: " + delta, 10, 30);
+    context.fillText("E: " + (entities.enemies.length + entities.projectiles.length + 1), 10, canvas.height - 10);
 }
 
 /***
