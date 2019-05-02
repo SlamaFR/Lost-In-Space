@@ -6,11 +6,11 @@ const ENEMY_SIZE = 50;
 const PLAYER_VELOCITY = 300;
 const MAX_VELOCITY = 275;
 
-const DEFAULT_COLOR = 'white';
-const DEFAULT_WIDTH = 1;
+let debugging = false;
 
 /**
  * Dessine toutes les entités du jeu.
+ * @param canvas Canvas du jeu.
  */
 function draw(canvas) {
     let context = canvas.getContext('2d');
@@ -19,10 +19,17 @@ function draw(canvas) {
     entities.enemies.forEach(e => e.draw());
     entities.projectiles.forEach(p => p.draw());
 
-    context.fillStyle = 'green';
-    context.fillText("FPS: " + Math.round(1 / delta), 10, 20);
-    context.fillText("Avg latency: " + delta, 10, 30);
-    context.fillText("E: " + (entities.enemies.length + entities.projectiles.length + 1), 10, canvas.height - 10);
+    if (debugging) {
+        context.fillStyle = 'green';
+        context.fillText("FPS: " + Math.round(1 / delta), 10, 20);
+        context.fillText("Avg gap: " + delta + "s", 10, 30);
+        context.fillText("E: " + (entities.enemies.length + entities.projectiles.length + 1), 10, canvas.height - 10);
+
+        context.fillText('Up: ' + keys.ArrowUp, 10, 50);
+        context.fillText('Left: ' + keys.ArrowLeft, 10, 60);
+        context.fillText('Down: ' + keys.ArrowDown, 10, 70);
+        context.fillText('Right: ' + keys.ArrowRight, 10, 80);
+    }
 }
 
 /***
@@ -66,13 +73,38 @@ function drawElement(context, style, fill, width, f) {
     context.stroke();
 }
 
-function drawPolygone(context, x, y, style, width, sides, radius, rotation = 0) {
+/**
+ * Dessine un polygone régulier.
+ * @param context Contexte.
+ * @param x Abscisse du centre.
+ * @param y Ordonnée du centre.
+ * @param style Couleur du polygone.
+ * @param width Épaisseur du trait.
+ * @param sides Nombre de côtés.
+ * @param radius Rayon du polygone.
+ * @param rotation Rotation du polygone en radians.
+ */
+function drawPolygon(context, x, y, style, width, sides, radius, rotation = 0) {
     drawElement(context, style, true, width, () => {
         for (let i = 0; i < sides; i++) {
             let angle = i * 2 * Math.PI / sides + Math.PI / 2 + rotation;
             context.lineTo(x - Math.cos(angle) * radius, y - Math.sin(angle) * radius);
         }
     })
+}
+
+/**
+ * Dessine la hit box d'une entité.
+ * @param entity Entité.
+ */
+function drawHitBox(entity) {
+    drawElement(entity.context, 'green', false, 1, () => {
+        entity.context.moveTo(entity.x - entity.leftOffset, entity.y - entity.topOffset);
+        entity.context.lineTo(entity.x + entity.rightOffset, entity.y - entity.topOffset);
+        entity.context.lineTo(entity.x + entity.rightOffset, entity.y + entity.bottomOffset);
+        entity.context.lineTo(entity.x - entity.leftOffset, entity.y + entity.bottomOffset);
+        entity.context.lineTo(entity.x - entity.leftOffset, entity.y - entity.topOffset);
+    });
 }
 
 class Player {
@@ -115,28 +147,18 @@ class Player {
     }
 
     draw() {
-        drawPolygone(this.context, this.x, this.y, 'white', 2, this.sides, this.radius, this.rotation);
-        /*
-        Dessin de la hit box.
-
-        drawElement(this.context, 'green', false, 1, () => {
-            this.context.moveTo(this.x - this.leftOffset, this.y - this.topOffset);
-            this.context.lineTo(this.x + this.rightOffset, this.y - this.topOffset);
-            this.context.lineTo(this.x + this.rightOffset, this.y + this.bottomOffset);
-            this.context.lineTo(this.x - this.leftOffset, this.y + this.bottomOffset);
-            this.context.lineTo(this.x - this.leftOffset, this.y - this.topOffset);
-        });
-        */
+        drawPolygon(this.context, this.x, this.y, 'white', 2, this.sides, this.radius, this.rotation);
+        if (debugging) drawHitBox(this);
     }
 
     update(delta) {
         let width = this.context.canvas.width;
         let height = this.context.canvas.height;
 
-        if (keys.ArrowUp && (this.y - this.topOffset) > 0) this.y -= delta * PLAYER_VELOCITY;
-        if (keys.ArrowDown && (this.y + this.bottomOffset) < height) this.y += delta * PLAYER_VELOCITY;
-        if (keys.ArrowLeft && (this.x - this.leftOffset) > 0) this.x -= delta * PLAYER_VELOCITY;
-        if (keys.ArrowRight && (this.x + this.rightOffset) < width) this.x += delta * PLAYER_VELOCITY;
+        if (keys.ArrowUp && !keys.ArrowDown && (this.y - this.topOffset) > 0) this.y -= delta * PLAYER_VELOCITY;
+        if (keys.ArrowDown && !keys.ArrowUp && (this.y + this.bottomOffset) < height) this.y += delta * PLAYER_VELOCITY;
+        if (keys.ArrowLeft && !keys.ArrowRight && (this.x - this.leftOffset) > 0) this.x -= delta * PLAYER_VELOCITY;
+        if (keys.ArrowRight && !keys.ArrowLeft && (this.x + this.rightOffset) < width) this.x += delta * PLAYER_VELOCITY;
     }
 
 }
@@ -187,18 +209,8 @@ class Enemy {
     }
 
     draw() {
-        drawPolygone(this.context, this.x, this.y, 'white', 2, this.sides, ENEMY_SIZE / 2, this.rotation);
-        /*
-        Dessin de la hit box.
-
-        drawElement(this.context, 'green', false, 1, () => {
-            this.context.moveTo(this.x - this.leftOffset, this.y - this.topOffset);
-            this.context.lineTo(this.x + this.rightOffset, this.y - this.topOffset);
-            this.context.lineTo(this.x + this.rightOffset, this.y + this.bottomOffset);
-            this.context.lineTo(this.x - this.leftOffset, this.y + this.bottomOffset);
-            this.context.lineTo(this.x - this.leftOffset, this.y - this.topOffset);
-        });
-        */
+        drawPolygon(this.context, this.x, this.y, 'white', 2, this.sides, ENEMY_SIZE / 2, this.rotation);
+        if (debugging) drawHitBox(this);
     }
 
     update(delta) {
@@ -243,6 +255,7 @@ window.onload = function () {
     window.setInterval(() => gameLoop(CANVAS), 1000 / FRAMERATE);
     window.onkeydown = function (e) {
         if (e.key in keys) keys[e.key] = true;
+        else if (e.key.toLowerCase() === 'i') debugging = !debugging;
     };
     window.onkeyup = function (e) {
         if (e.key in keys) keys[e.key] = false;
