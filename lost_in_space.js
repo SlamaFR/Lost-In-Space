@@ -13,7 +13,7 @@ const PROJECTILE_WIDTH = 2;
 const PROJECTILE_HEIGHT = 10;
 
 const MAX_WAVES = 10;
-const OBJECTIVE = 3;
+const OBJECTIVE = 300;
 
 let debugging = false;
 let killedEnemies = 0;
