@@ -12,12 +12,28 @@ const DEFAULT_Y_VELOCITY = 50;
 const PROJECTILE_WIDTH = 2;
 const PROJECTILE_HEIGHT = 10;
 
-const MAX_WAVES = 10;
 const OBJECTIVE = 300;
 
 let debugging = false;
 let killedEnemies = 0;
-let waves = 0;
+
+/*
+INFORMATIONS SUR LE PROGRAMME
+
+Le joueur se déplace via les flèches directionnelles.
+Le joueur peut tirer avec la barre espace.
+
+Le but est tuer les 10 vagues de 30 ennemis sans mourir.
+
+Des météorites apparaissent pendant les vagues et dévastent tout
+sur leur passage. Il est impossible de les détruire.
+
+Heurter un missile est mortel.
+Heurter un ennemi est mortel.
+Heurter une météorite est mortel.
+
+L'appui sur la touche I active/désactive l'affichage du debug.
+ */
 
 /**
  * Dessine toutes les entités du jeu.
@@ -31,6 +47,7 @@ function draw(canvas) {
             entities.player.draw();
             entities.enemies.forEach(e => e.draw());
             entities.projectiles.forEach(p => p.draw());
+            entities.meteorites.forEach(m => m.draw());
         } else {
             context.fillStyle = 'orange';
             context.textAlign = 'center';
@@ -52,7 +69,7 @@ function draw(canvas) {
         context.fillText("FPS: " + Math.round(1 / delta), 10, 20);
         context.fillText("Avg gap: " + delta + "s", 10, 30);
         context.fillText("Kills: " + killedEnemies, 10, 150);
-        context.fillText("E: " + (entities.enemies.length + entities.projectiles.length + 1), 10, canvas.height - 10);
+        context.fillText("E: " + (entities.enemies.length + entities.projectiles.length + entities.meteorites.length + 1), 10, canvas.height - 10);
 
         context.fillText('Up: ' + keys.ArrowUp, 10, 50);
         context.fillText('Left: ' + keys.ArrowLeft, 10, 60);
@@ -76,6 +93,10 @@ function update(delta) {
     entities.projectiles.forEach(p => {
         if (p.alive) p.update(delta);
         else entities.projectiles.splice(entities.projectiles.indexOf(p), 1);
+    });
+    entities.meteorites.forEach(m => {
+        if (m.alive) m.update(delta);
+        else entities.meteorites.splice(entities.meteorites.indexOf(m), 1);
     });
 }
 
@@ -147,14 +168,21 @@ function drawHitBox(entity) {
 }
 
 /**
- * Déclenche une vague de 30 vaisseaux ennemis.
+ * Déclenche une vague de 30 vaisseaux ennemis et 10 météorites.
  */
 function spawnWave(canvas) {
-    if (waves === MAX_WAVES) return;
-    waves++;
+
+    if (!entities.player.alive) return;
+
+    if (killedEnemies >= OBJECTIVE) return;
 
     for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 10; j++) {
+            if (i < 1 && j % 2 === 0)
+                entities.meteorites.push(new Meteorite(canvas.getContext('2d'),
+                    canvas.width / 2 + (Math.random() >= .5 ? 1 : -1) * canvas.width,
+                    canvas.height / 2 + (Math.random() >= .5 ? 1 : -1) * canvas.height,
+                    ENEMY_SIZE / 4));
             entities.enemies.push(
                 new Enemy(canvas.getContext('2d'), canvas.width * (j + 1) / 11, -canvas.height * (i + 1) / 11, ENEMY_SIZE / 2)
             );
@@ -177,7 +205,7 @@ class Player {
     rightOffset = 0;
     topOffset = 0;
 
-    sides = 3;
+    sides = 5;
 
     constructor(context, x, y, radius, rotation = 0) {
         this.context = context;
@@ -238,6 +266,28 @@ class Player {
             if (this.x - this.leftOffset <= e.x - e.leftOffset && e.x - e.leftOffset <= this.x + this.rightOffset &&
                 this.y - this.topOffset <= e.y + e.bottomOffset && e.y + e.bottomOffset <= this.y + this.bottomOffset)
                 this.alive = false;
+        });
+
+        entities.meteorites.forEach(m => {
+            if (this.x - this.leftOffset <= m.x + m.rightOffset && m.x + m.rightOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= m.y - m.topOffset && m.y - m.topOffset <= this.y + this.bottomOffset) {
+                this.alive = false;
+            }
+
+            if (this.x - this.leftOffset <= m.x - m.leftOffset && m.x - m.leftOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= m.y - m.topOffset && m.y - m.topOffset <= this.y + this.bottomOffset) {
+                this.alive = false;
+            }
+
+            if (this.x - this.leftOffset <= m.x + m.rightOffset && m.x + m.rightOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= m.y + m.bottomOffset && m.y + m.bottomOffset <= this.y + this.bottomOffset) {
+                this.alive = false;
+            }
+
+            if (this.x - this.leftOffset <= m.x - m.leftOffset && m.x - m.leftOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= m.y + m.bottomOffset && m.y + m.bottomOffset <= this.y + this.bottomOffset) {
+                this.alive = false;
+            }
         });
 
         let width = this.context.canvas.width;
@@ -347,6 +397,28 @@ class Enemy {
             }
         });
 
+        entities.meteorites.forEach(m => {
+            if (this.x - this.leftOffset <= m.x + m.rightOffset && m.x + m.rightOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= m.y - m.topOffset && m.y - m.topOffset <= this.y + this.bottomOffset) {
+                this.alive = false;
+            }
+
+            if (this.x - this.leftOffset <= m.x - m.leftOffset && m.x - m.leftOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= m.y - m.topOffset && m.y - m.topOffset <= this.y + this.bottomOffset) {
+                this.alive = false;
+            }
+
+            if (this.x - this.leftOffset <= m.x + m.rightOffset && m.x + m.rightOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= m.y + m.bottomOffset && m.y + m.bottomOffset <= this.y + this.bottomOffset) {
+                this.alive = false;
+            }
+
+            if (this.x - this.leftOffset <= m.x - m.leftOffset && m.x - m.leftOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= m.y + m.bottomOffset && m.y + m.bottomOffset <= this.y + this.bottomOffset) {
+                this.alive = false;
+            }
+        });
+
         if (this.xVelocity < 0) {
             if (this.x - this.leftOffset < 0)
                 this.xVelocity *= Math.abs(this.xVelocity) < MAX_VELOCITY ? -1.1 : -1;
@@ -367,6 +439,101 @@ class Enemy {
 
         this.rotation = Math.atan(this.yVelocity / this.xVelocity) + Math.PI / 2;
         if (this.xVelocity < 0) this.rotation += Math.PI;
+    }
+
+    setOffsets() {
+        this.topOffset = 0;
+        this.bottomOffset = 0;
+        this.rightOffset = 0;
+        this.leftOffset = 0;
+
+        for (let i = 0; i < this.sides; i++) {
+            let angle = i * 2 * Math.PI / this.sides + Math.PI / 2 + this.rotation;
+
+            if (this.x - Math.cos(angle) * this.radius < this.x - this.leftOffset)
+                this.leftOffset = Math.cos(angle) * this.radius;
+
+            if (this.x - Math.cos(angle) * this.radius > this.x + this.rightOffset)
+                this.rightOffset = Math.abs(Math.cos(angle)) * this.radius;
+
+            if (this.y - Math.sin(angle) * this.radius < this.y - this.topOffset)
+                this.topOffset = Math.sin(angle) * this.radius;
+
+            if (this.y - Math.sin(angle) * this.radius > this.y + this.bottomOffset)
+                this.bottomOffset = Math.abs(Math.sin(angle)) * this.radius;
+        }
+    }
+
+}
+
+class Meteorite {
+
+    context;
+    x;
+    y;
+    radius;
+    rotation;
+
+    xVelocity;
+    yVelocity;
+    alive = true;
+
+    leftOffset = 0;
+    bottomOffset = 0;
+    rightOffset = 0;
+    topOffset = 0;
+
+    sides = 7;
+
+    constructor(context, x, y, radius, rotation = 0) {
+        this.context = context;
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.rotation = rotation;
+
+        this.setOffsets();
+
+        this.xVelocity = (Math.random() + .5) * (this.x < this.context.canvas.width / 2 ? DEFAULT_X_VELOCITY : -DEFAULT_X_VELOCITY);
+        this.yVelocity = (Math.random() + .5) * (this.y < this.context.canvas.height / 2 ? DEFAULT_X_VELOCITY : -DEFAULT_X_VELOCITY);
+    }
+
+    draw() {
+        drawPolygon(this.context, this.x, this.y, 'gray', 2, this.sides, ENEMY_SIZE / 4, this.rotation);
+        if (debugging) drawHitBox(this);
+    }
+
+    update(delta) {
+        if (this.sides > 5) this.setOffsets();
+
+        entities.projectiles.forEach(p => {
+            if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= p.y - p.topOffset && p.y - p.topOffset <= this.y + this.bottomOffset) p.alive = false;
+
+            if (this.x - this.leftOffset <= p.x - p.leftOffset && p.x - p.leftOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= p.y - p.topOffset && p.y - p.topOffset <= this.y + this.bottomOffset) p.alive = false;
+
+            if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= p.y + p.bottomOffset && p.y + p.bottomOffset <= this.y + this.bottomOffset) p.alive = false;
+
+            if (this.x - this.leftOffset <= p.x - p.leftOffset && p.x - p.leftOffset <= this.x + this.rightOffset &&
+                this.y - this.topOffset <= p.y + p.bottomOffset && p.y + p.bottomOffset <= this.y + this.bottomOffset) p.alive = false;
+        });
+
+        if (this.xVelocity < 0) {
+            if (this.x + this.rightOffset < 0) this.alive = false;
+        } else {
+            if (this.x - this.leftOffset > this.context.canvas.width) this.alive = false;
+        }
+        if (this.yVelocity < 0) {
+            if (this.y + this.bottomOffset < 0) this.alive = false;
+        } else {
+            if (this.y - this.topOffset > this.context.canvas.height) this.alive = false;
+        }
+
+        this.x += delta * this.xVelocity;
+        this.y += delta * this.yVelocity;
+        this.rotation += .1;
     }
 
     setOffsets() {
@@ -442,7 +609,8 @@ class Projectile {
 
 let entities = {
     "enemies": [],
-    "projectiles": []
+    "projectiles": [],
+    "meteorites": []
 };
 let keys = {
     "ArrowUp": false,
@@ -457,6 +625,8 @@ let delta = 0;
 window.onload = function () {
 
     const CANVAS = document.getElementById('game_area');
+
+    entities.player = new Player(CANVAS.getContext('2d'), CANVAS.width / 2, CANVAS.height * 5 / 6, PLAYER_SIZE / 2);
 
     spawnWave(CANVAS);
 
@@ -476,8 +646,5 @@ window.onload = function () {
     window.onkeyup = function (e) {
         if (e.key in keys) keys[e.key] = false;
     };
-
-    entities.player = new Player(CANVAS.getContext('2d'), CANVAS.width / 2, CANVAS.height * 5 / 6, PLAYER_SIZE / 2);
-
 
 };
