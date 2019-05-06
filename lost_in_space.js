@@ -50,6 +50,138 @@ Heurter une météorite est mortel.
 L"appui sur la touche I active/désactive l"affichage du debug.
  */
 
+/**
+ * Dessine toutes les entités du jeu.
+ * @param canvas Canvas du jeu.
+ */
+function draw(canvas) {
+    let context = canvas.getContext("2d");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (entities.player.alive) {
+        if (killedEnemies < OBJECTIVE) {
+            entities.player.draw();
+            entities.enemies.forEach(e => e.draw());
+            entities.projectiles.forEach(p => p.draw());
+            entities.meteorites.forEach(m => m.draw());
+        } else {
+            context.fillStyle = "orange";
+            context.textAlign = "center";
+            context.font = "normal 40px sans-serif";
+            context.fillText("Victoire !", canvas.width / 2, canvas.height / 2);
+        }
+    } else {
+        context.fillStyle = "red";
+        context.textAlign = "center";
+        context.font = "normal 40px sans-serif";
+        context.fillText("Game over", canvas.width / 2, canvas.height / 2);
+    }
+
+    if (debugging) {
+        context.fillStyle = "green";
+        context.font = "normal 10px sans-serif";
+        context.textAlign = "left";
+
+        context.fillText("FPS: " + Math.round(1 / delta), 10, 20);
+        context.fillText("Avg gap: " + delta + "s", 10, 30);
+        context.fillText("Kills: " + killedEnemies, 10, 150);
+        context.fillText("E: " + (entities.enemies.length + entities.projectiles.length + entities.meteorites.length + 1), 10, canvas.height - 10);
+
+        context.fillText("Up: " + keys.ArrowUp, 10, 50);
+        context.fillText("Left: " + keys.ArrowLeft, 10, 60);
+        context.fillText("Down: " + keys.ArrowDown, 10, 70);
+        context.fillText("Right: " + keys.ArrowRight, 10, 80);
+    }
+}
+
+/**
+ * Met à jour toutes les entités du jeu. (Position, vitesse, état, ...)
+ */
+function update(delta) {
+    entities.player.update(delta);
+    entities.enemies.forEach(e => {
+        if (e.alive) e.update(delta);
+        else {
+            killedEnemies++;
+            entities.enemies.splice(entities.enemies.indexOf(e), 1);
+        }
+    });
+    entities.projectiles.forEach(p => {
+        if (p.alive) p.update(delta);
+        else entities.projectiles.splice(entities.projectiles.indexOf(p), 1);
+    });
+    entities.meteorites.forEach(m => {
+        if (m.alive) m.update(delta);
+        else entities.meteorites.splice(entities.meteorites.indexOf(m), 1);
+    });
+}
+
+/**
+ * Boucle principale.
+ */
+function gameLoop(canvas) {
+    let date = new Date();
+
+    delta = (date.getTime() - lastTime) / 1000;
+    lastTime = date.getTime();
+
+    if (entities.player.alive && killedEnemies < OBJECTIVE) update(delta);
+
+    draw(canvas);
+}
+
+/**
+ * Dessine un élément.
+ * @param context Contexte.
+ * @param style Couleur de l"élément.
+ * @param fill Remplissage du polygone.
+ * @param width Épaisseur du trait.
+ * @param f Fonction contenant les instructions.
+ */
+function drawElement(context, style, fill, width, f) {
+    context.strokeStyle = style;
+    context.fillStyle = style;
+    context.lineWidth = width;
+    context.beginPath();
+    f();
+    context.closePath();
+    if (fill) context.fill();
+    context.stroke();
+}
+
+/**
+ * Dessine un polygone régulier.
+ * @param context Contexte.
+ * @param x Abscisse du centre.
+ * @param y Ordonnée du centre.
+ * @param style Couleur du polygone.
+ * @param width Épaisseur du trait.
+ * @param sides Nombre de côtés.
+ * @param radius Rayon du polygone.
+ * @param rotation Rotation du polygone en radians.
+ */
+function drawPolygon(context, x, y, style, width, sides, radius, rotation = 0) {
+    drawElement(context, style, true, width, () => {
+        for (let i = 0; i < sides; i++) {
+            let angle = i * 2 * Math.PI / sides + Math.PI / 2 + rotation;
+            context.lineTo(x - Math.cos(angle) * radius, y - Math.sin(angle) * radius);
+        }
+    });
+}
+
+/**
+ * Dessine la hit box d"une entité.
+ * @param entity Entité.
+ */
+function drawHitBox(entity) {
+    drawElement(entity.context, "red", false, 1, () => {
+        entity.context.moveTo(entity.x - entity.leftOffset, entity.y - entity.topOffset);
+        entity.context.lineTo(entity.x + entity.rightOffset, entity.y - entity.topOffset);
+        entity.context.lineTo(entity.x + entity.rightOffset, entity.y + entity.bottomOffset);
+        entity.context.lineTo(entity.x - entity.leftOffset, entity.y + entity.bottomOffset);
+        entity.context.lineTo(entity.x - entity.leftOffset, entity.y - entity.topOffset);
+    });
+}
+
 class Player {
 
     context;
@@ -465,138 +597,6 @@ class Projectile {
         this.traveledDistance += delta * this.velocity;
     }
 
-}
-
-/**
- * Dessine toutes les entités du jeu.
- * @param canvas Canvas du jeu.
- */
-function draw(canvas) {
-    let context = canvas.getContext("2d");
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    if (entities.player.alive) {
-        if (killedEnemies < OBJECTIVE) {
-            entities.player.draw();
-            entities.enemies.forEach(e => e.draw());
-            entities.projectiles.forEach(p => p.draw());
-            entities.meteorites.forEach(m => m.draw());
-        } else {
-            context.fillStyle = "orange";
-            context.textAlign = "center";
-            context.font = "normal 40px sans-serif";
-            context.fillText("Victoire !", canvas.width / 2, canvas.height / 2);
-        }
-    } else {
-        context.fillStyle = "red";
-        context.textAlign = "center";
-        context.font = "normal 40px sans-serif";
-        context.fillText("Game over", canvas.width / 2, canvas.height / 2);
-    }
-
-    if (debugging) {
-        context.fillStyle = "green";
-        context.font = "normal 10px sans-serif";
-        context.textAlign = "left";
-
-        context.fillText("FPS: " + Math.round(1 / delta), 10, 20);
-        context.fillText("Avg gap: " + delta + "s", 10, 30);
-        context.fillText("Kills: " + killedEnemies, 10, 150);
-        context.fillText("E: " + (entities.enemies.length + entities.projectiles.length + entities.meteorites.length + 1), 10, canvas.height - 10);
-
-        context.fillText("Up: " + keys.ArrowUp, 10, 50);
-        context.fillText("Left: " + keys.ArrowLeft, 10, 60);
-        context.fillText("Down: " + keys.ArrowDown, 10, 70);
-        context.fillText("Right: " + keys.ArrowRight, 10, 80);
-    }
-}
-
-/**
- * Met à jour toutes les entités du jeu. (Position, vitesse, état, ...)
- */
-function update(delta) {
-    entities.player.update(delta);
-    entities.enemies.forEach(e => {
-        if (e.alive) e.update(delta);
-        else {
-            killedEnemies++;
-            entities.enemies.splice(entities.enemies.indexOf(e), 1);
-        }
-    });
-    entities.projectiles.forEach(p => {
-        if (p.alive) p.update(delta);
-        else entities.projectiles.splice(entities.projectiles.indexOf(p), 1);
-    });
-    entities.meteorites.forEach(m => {
-        if (m.alive) m.update(delta);
-        else entities.meteorites.splice(entities.meteorites.indexOf(m), 1);
-    });
-}
-
-/**
- * Boucle principale.
- */
-function gameLoop(canvas) {
-    let date = new Date();
-
-    delta = (date.getTime() - lastTime) / 1000;
-    lastTime = date.getTime();
-
-    if (entities.player.alive && killedEnemies < OBJECTIVE) update(delta);
-
-    draw(canvas);
-}
-
-/**
- * Dessine un élément.
- * @param context Contexte.
- * @param style Couleur de l"élément.
- * @param fill Remplissage du polygone.
- * @param width Épaisseur du trait.
- * @param f Fonction contenant les instructions.
- */
-function drawElement(context, style, fill, width, f) {
-    context.strokeStyle = style;
-    context.fillStyle = style;
-    context.lineWidth = width;
-    context.beginPath();
-    f();
-    context.closePath();
-    if (fill) context.fill();
-    context.stroke();
-}
-
-/**
- * Dessine un polygone régulier.
- * @param context Contexte.
- * @param x Abscisse du centre.
- * @param y Ordonnée du centre.
- * @param style Couleur du polygone.
- * @param width Épaisseur du trait.
- * @param sides Nombre de côtés.
- * @param radius Rayon du polygone.
- * @param rotation Rotation du polygone en radians.
- */
-function drawPolygon(context, x, y, style, width, sides, radius, rotation = 0) {
-    drawElement(context, style, true, width, () => {
-        for (let i = 0; i < sides; i++) {
-            let angle = i * 2 * Math.PI / sides + Math.PI / 2 + rotation;
-            context.lineTo(x - Math.cos(angle) * radius, y - Math.sin(angle) * radius);
-        }
-    });
-}
-
-/**
- * Dessine la hit box d"une entité.
- * @param entity Entité.
- */
-function drawHitBox(entity) {
-    drawElement(entity.context, "red", false, 1, () => {
-        entity.context.moveTo(entity.x - entity.leftOffset, entity.y - entity.topOffset);
-        entity.context.lineTo(entity.x + entity.rightOffset, entity.y - entity.topOffset);
-        entity.context.lineTo(entity.x + entity.rightOffset, entity.y + entity.bottomOffset);
-        entity.context.lineTo(entity.x - entity.leftOffset, entity.y + entity.bottomOffset);
-        entity.context.lineTo(entity.x - entity.leftOffset, entity.y - entity.topOffset);
-    });
 }
 
 /**
