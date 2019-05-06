@@ -17,6 +17,21 @@ const OBJECTIVE = 300;
 let debugging = false;
 let killedEnemies = 0;
 
+let entities = {
+    "enemies": [],
+    "projectiles": [],
+    "meteorites": []
+};
+let keys = {
+    "ArrowUp": false,
+    "ArrowDown": false,
+    "ArrowLeft": false,
+    "ArrowRight": false
+};
+
+let lastTime = new Date().getTime();
+let delta = 0;
+
 /*
 INFORMATIONS SUR LE PROGRAMME
 
@@ -32,7 +47,7 @@ Heurter un missile est mortel.
 Heurter un ennemi est mortel.
 Heurter une météorite est mortel.
 
-L'appui sur la touche I active/désactive l'affichage du debug.
+L"appui sur la touche I active/désactive l"affichage du debug.
  */
 
 /**
@@ -40,7 +55,7 @@ L'appui sur la touche I active/désactive l'affichage du debug.
  * @param canvas Canvas du jeu.
  */
 function draw(canvas) {
-    let context = canvas.getContext('2d');
+    let context = canvas.getContext("2d");
     context.clearRect(0, 0, canvas.width, canvas.height);
     if (entities.player.alive) {
         if (killedEnemies < OBJECTIVE) {
@@ -49,32 +64,32 @@ function draw(canvas) {
             entities.projectiles.forEach(p => p.draw());
             entities.meteorites.forEach(m => m.draw());
         } else {
-            context.fillStyle = 'orange';
-            context.textAlign = 'center';
-            context.font = 'normal 40px sans-serif';
+            context.fillStyle = "orange";
+            context.textAlign = "center";
+            context.font = "normal 40px sans-serif";
             context.fillText("Victoire !", canvas.width / 2, canvas.height / 2);
         }
     } else {
-        context.fillStyle = 'red';
-        context.textAlign = 'center';
-        context.font = 'normal 40px sans-serif';
+        context.fillStyle = "red";
+        context.textAlign = "center";
+        context.font = "normal 40px sans-serif";
         context.fillText("Game over", canvas.width / 2, canvas.height / 2);
     }
 
     if (debugging) {
-        context.fillStyle = 'green';
-        context.font = 'normal 10px sans-serif';
-        context.textAlign = 'left';
+        context.fillStyle = "green";
+        context.font = "normal 10px sans-serif";
+        context.textAlign = "left";
 
         context.fillText("FPS: " + Math.round(1 / delta), 10, 20);
         context.fillText("Avg gap: " + delta + "s", 10, 30);
         context.fillText("Kills: " + killedEnemies, 10, 150);
         context.fillText("E: " + (entities.enemies.length + entities.projectiles.length + entities.meteorites.length + 1), 10, canvas.height - 10);
 
-        context.fillText('Up: ' + keys.ArrowUp, 10, 50);
-        context.fillText('Left: ' + keys.ArrowLeft, 10, 60);
-        context.fillText('Down: ' + keys.ArrowDown, 10, 70);
-        context.fillText('Right: ' + keys.ArrowRight, 10, 80);
+        context.fillText("Up: " + keys.ArrowUp, 10, 50);
+        context.fillText("Left: " + keys.ArrowLeft, 10, 60);
+        context.fillText("Down: " + keys.ArrowDown, 10, 70);
+        context.fillText("Right: " + keys.ArrowRight, 10, 80);
     }
 }
 
@@ -117,7 +132,7 @@ function gameLoop(canvas) {
 /**
  * Dessine un élément.
  * @param context Contexte.
- * @param style Couleur de l'élément.
+ * @param style Couleur de l"élément.
  * @param fill Remplissage du polygone.
  * @param width Épaisseur du trait.
  * @param f Fonction contenant les instructions.
@@ -150,15 +165,15 @@ function drawPolygon(context, x, y, style, width, sides, radius, rotation = 0) {
             let angle = i * 2 * Math.PI / sides + Math.PI / 2 + rotation;
             context.lineTo(x - Math.cos(angle) * radius, y - Math.sin(angle) * radius);
         }
-    })
+    });
 }
 
 /**
- * Dessine la hit box d'une entité.
+ * Dessine la hit box d"une entité.
  * @param entity Entité.
  */
 function drawHitBox(entity) {
-    drawElement(entity.context, 'red', false, 1, () => {
+    drawElement(entity.context, "red", false, 1, () => {
         entity.context.moveTo(entity.x - entity.leftOffset, entity.y - entity.topOffset);
         entity.context.lineTo(entity.x + entity.rightOffset, entity.y - entity.topOffset);
         entity.context.lineTo(entity.x + entity.rightOffset, entity.y + entity.bottomOffset);
@@ -179,12 +194,12 @@ function spawnWave(canvas) {
     for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 10; j++) {
             if (i < 1 && j % 2 === 0)
-                entities.meteorites.push(new Meteorite(canvas.getContext('2d'),
+                entities.meteorites.push(new Meteorite(canvas.getContext("2d"),
                     canvas.width / 2 + (Math.random() >= .5 ? 1 : -1) * canvas.width,
                     canvas.height / 2 + (Math.random() >= .5 ? 1 : -1) * canvas.height,
                     ENEMY_SIZE / 4));
             entities.enemies.push(
-                new Enemy(canvas.getContext('2d'), canvas.width * (j + 1) / 11, -canvas.height * (i + 1) / 11, ENEMY_SIZE / 2)
+                new Enemy(canvas.getContext("2d"), canvas.width * (j + 1) / 11, -canvas.height * (i + 1) / 11, ENEMY_SIZE / 2)
             );
         }
     }
@@ -218,7 +233,7 @@ class Player {
     }
 
     draw() {
-        drawPolygon(this.context, this.x, this.y, 'white', 2, this.sides, this.radius, this.rotation);
+        drawPolygon(this.context, this.x, this.y, "white", 2, this.sides, this.radius, this.rotation);
         if (debugging) drawHitBox(this);
     }
 
@@ -361,7 +376,7 @@ class Enemy {
     }
 
     draw() {
-        drawPolygon(this.context, this.x, this.y, 'green', 2, this.sides, ENEMY_SIZE / 2, this.rotation);
+        drawPolygon(this.context, this.x, this.y, "green", 2, this.sides, ENEMY_SIZE / 2, this.rotation);
         if (debugging) drawHitBox(this);
     }
 
@@ -499,7 +514,7 @@ class Meteorite {
     }
 
     draw() {
-        drawPolygon(this.context, this.x, this.y, 'gray', 2, this.sides, ENEMY_SIZE / 4, this.rotation);
+        drawPolygon(this.context, this.x, this.y, "gray", 2, this.sides, ENEMY_SIZE / 4, this.rotation);
         if (debugging) drawHitBox(this);
     }
 
@@ -585,7 +600,7 @@ class Projectile {
 
     draw() {
         if (!this.alive) return;
-        drawElement(this.context, 'white', true, 1, () => {
+        drawElement(this.context, "white", true, 1, () => {
             this.context.moveTo(this.x - this.leftOffset, this.y - this.topOffset);
             this.context.lineTo(this.x + this.leftOffset, this.y - this.topOffset);
             this.context.lineTo(this.x + this.rightOffset, this.y + this.bottomOffset);
@@ -607,26 +622,11 @@ class Projectile {
 
 }
 
-let entities = {
-    "enemies": [],
-    "projectiles": [],
-    "meteorites": []
-};
-let keys = {
-    "ArrowUp": false,
-    "ArrowDown": false,
-    "ArrowLeft": false,
-    "ArrowRight": false
-};
-
-let lastTime = new Date().getTime();
-let delta = 0;
-
 window.onload = function () {
 
-    const CANVAS = document.getElementById('game_area');
+    const CANVAS = document.getElementById("game_area");
 
-    entities.player = new Player(CANVAS.getContext('2d'), CANVAS.width / 2, CANVAS.height * 5 / 6, PLAYER_SIZE / 2);
+    entities.player = new Player(CANVAS.getContext("2d"), CANVAS.width / 2, CANVAS.height * 5 / 6, PLAYER_SIZE / 2);
 
     spawnWave(CANVAS);
 
@@ -635,10 +635,10 @@ window.onload = function () {
     window.onkeydown = function (e) {
         if (e.key in keys) keys[e.key] = true;
         else switch (e.key.toLowerCase()) {
-            case 'i':
+            case "i":
                 debugging = !debugging;
                 break;
-            case ' ':
+            case " ":
                 entities.player.shoot();
                 break;
         }
