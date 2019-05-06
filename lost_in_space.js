@@ -182,6 +182,52 @@ function drawHitBox(entity) {
     });
 }
 
+class Projectile {
+
+    context;
+    x;
+    y;
+    velocity;
+
+    traveledDistance = 0;
+    alive = true;
+
+    leftOffset = PROJECTILE_WIDTH / 2;
+    rightOffset = PROJECTILE_WIDTH / 2;
+    bottomOffset = PROJECTILE_HEIGHT / 2;
+    topOffset = PROJECTILE_HEIGHT / 2;
+
+    constructor(context, x, y, velocity) {
+        this.context = context;
+        this.x = x;
+        this.y = y;
+        this.velocity = velocity;
+    }
+
+    draw() {
+        if (!this.alive) return;
+        drawElement(this.context, "white", true, 1, () => {
+            this.context.moveTo(this.x - this.leftOffset, this.y - this.topOffset);
+            this.context.lineTo(this.x + this.leftOffset, this.y - this.topOffset);
+            this.context.lineTo(this.x + this.rightOffset, this.y + this.bottomOffset);
+            this.context.lineTo(this.x - this.leftOffset, this.y + this.bottomOffset);
+            this.context.lineTo(this.x - this.leftOffset, this.y - this.topOffset);
+        });
+        if (debugging) drawHitBox(this);
+    }
+
+    update(delta) {
+        if (!this.alive || this.y + this.bottomOffset <= 0 || this.traveledDistance >= this.context.canvas.height / 2) {
+            this.alive = false;
+        }
+
+        this.velocity *= .99;
+        this.y -= delta * this.velocity;
+        this.traveledDistance += delta * this.velocity;
+    }
+
+}
+
 class Player {
 
     context;
@@ -549,52 +595,6 @@ class Meteorite {
             if (this.y - Math.sin(angle) * this.radius > this.y + this.bottomOffset)
                 this.bottomOffset = Math.abs(Math.sin(angle)) * this.radius;
         }
-    }
-
-}
-
-class Projectile {
-
-    context;
-    x;
-    y;
-    velocity;
-
-    traveledDistance = 0;
-    alive = true;
-
-    leftOffset = PROJECTILE_WIDTH / 2;
-    rightOffset = PROJECTILE_WIDTH / 2;
-    bottomOffset = PROJECTILE_HEIGHT / 2;
-    topOffset = PROJECTILE_HEIGHT / 2;
-
-    constructor(context, x, y, velocity) {
-        this.context = context;
-        this.x = x;
-        this.y = y;
-        this.velocity = velocity;
-    }
-
-    draw() {
-        if (!this.alive) return;
-        drawElement(this.context, "white", true, 1, () => {
-            this.context.moveTo(this.x - this.leftOffset, this.y - this.topOffset);
-            this.context.lineTo(this.x + this.leftOffset, this.y - this.topOffset);
-            this.context.lineTo(this.x + this.rightOffset, this.y + this.bottomOffset);
-            this.context.lineTo(this.x - this.leftOffset, this.y + this.bottomOffset);
-            this.context.lineTo(this.x - this.leftOffset, this.y - this.topOffset);
-        });
-        if (debugging) drawHitBox(this);
-    }
-
-    update(delta) {
-        if (!this.alive || this.y + this.bottomOffset <= 0 || this.traveledDistance >= this.context.canvas.height / 2) {
-            this.alive = false;
-        }
-
-        this.velocity *= .99;
-        this.y -= delta * this.velocity;
-        this.traveledDistance += delta * this.velocity;
     }
 
 }
