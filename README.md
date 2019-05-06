@@ -1,8 +1,13 @@
 # Lost in Space
+
+![Codacy grade](https://img.shields.io/codacy/grade/9368f78cc4434f8888891585ee13a521.svg?logo=codacy)
+
 Lost in space is a JavaScript bases game taking place in space.
 
 ## Game summary
+
 ### Story
+
 In a not-so-distant future, the earth and all the planets of the solar system have been colonized by an alien race and you are the only human to have managed to escape aboard an alien ship triangular shape.
 
 To stop you, an accountant among the extra-terestrals decides that 300 ships should be enough to prevent you from activating the hyper-propulsion to escape.
