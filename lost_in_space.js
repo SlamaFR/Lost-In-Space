@@ -60,9 +60,9 @@ function draw(canvas) {
     if (entities.player.alive) {
         if (killedEnemies < OBJECTIVE) {
             entities.player.draw();
-            entities.enemies.forEach(e => e.draw());
-            entities.projectiles.forEach(p => p.draw());
-            entities.meteorites.forEach(m => m.draw());
+            entities.enemies.forEach((e) => e.draw());
+            entities.projectiles.forEach((p) => p.draw());
+            entities.meteorites.forEach((m) => m.draw());
         } else {
             context.fillStyle = "orange";
             context.textAlign = "center";
@@ -98,18 +98,18 @@ function draw(canvas) {
  */
 function update(delta) {
     entities.player.update(delta);
-    entities.enemies.forEach(e => {
+    entities.enemies.forEach((e) => {
         if (e.alive) e.update(delta);
         else {
             killedEnemies++;
             entities.enemies.splice(entities.enemies.indexOf(e), 1);
         }
     });
-    entities.projectiles.forEach(p => {
+    entities.projectiles.forEach((p) => {
         if (p.alive) p.update(delta);
         else entities.projectiles.splice(entities.projectiles.indexOf(p), 1);
     });
-    entities.meteorites.forEach(m => {
+    entities.meteorites.forEach((m) => {
         if (m.alive) m.update(delta);
         else entities.meteorites.splice(entities.meteorites.indexOf(m), 1);
     });
@@ -322,18 +322,18 @@ class Player extends Entity {
 
     update(delta) {
 
-        entities.projectiles.forEach(p => {
+        entities.projectiles.forEach((p) => {
             if (detectCollision(this, p)) {
                 this.alive = false;
                 p.alive = false;
             }
         });
 
-        entities.enemies.forEach(e => {
+        entities.enemies.forEach((e) => {
             if (detectCollision(this, e)) this.alive = false;
         });
 
-        entities.meteorites.forEach(m => {
+        entities.meteorites.forEach((m) => {
             if (detectCollision(this, m)) this.alive = false;
         });
 
@@ -384,14 +384,14 @@ class Enemy extends Entity {
             this.previousRotation = this.rotation;
         }
 
-        entities.projectiles.forEach(p => {
+        entities.projectiles.forEach((p) => {
             if (detectCollision(this, p)) {
                 this.alive = false;
                 p.alive = false;
             }
         });
 
-        entities.meteorites.forEach(m => {
+        entities.meteorites.forEach((m) => {
             if (detectCollision(this, m)) this.alive = false;
         });
 
@@ -448,7 +448,7 @@ class Meteorite extends Entity {
     update(delta) {
         if (this.sides > 5) setOffsets(this);
 
-        entities.projectiles.forEach(p => {
+        entities.projectiles.forEach((p) => {
             if (detectCollision(this, p)) p.alive = false;
         });
 
