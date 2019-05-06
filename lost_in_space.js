@@ -205,7 +205,7 @@ class Player {
     rightOffset = 0;
     topOffset = 0;
 
-    sides = 5;
+    sides = 3;
 
     constructor(context, x, y, radius, rotation = 0) {
         this.context = context;
