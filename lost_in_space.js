@@ -47,7 +47,7 @@ Heurter un missile est mortel.
 Heurter un ennemi est mortel.
 Heurter une météorite est mortel.
 
-L"appui sur la touche I active/désactive l"affichage du debug.
+L'appui sur la touche I active/désactive l'affichage du debug.
  */
 
 /**
@@ -235,7 +235,7 @@ function detectCollision(entity1, entity2) {
         entity2.x - entity2.leftOffset <= entity1.x + entity1.rightOffset &&
         entity1.y - entity1.topOffset <= entity2.y + entity2.bottomOffset &&
         entity2.y + entity2.bottomOffset <= entity1.y + entity1.bottomOffset;
-    
+
     return upperLeft || upperRight || lowerLeft || lowerRight;
 }
 
