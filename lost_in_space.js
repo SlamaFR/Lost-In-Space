@@ -182,15 +182,89 @@ function drawHitBox(entity) {
     });
 }
 
-class Projectile {
+/**
+ * Calcule les marges gauche, droite, haut et bas afin d'affiner la hit box.
+ * @param entity Entité.
+ */
+function setOffsets(entity) {
+    entity.topOffset = 0;
+    entity.bottomOffset = 0;
+    entity.rightOffset = 0;
+    entity.leftOffset = 0;
+
+    for (let i = 0; i < entity.sides; i++) {
+        let angle = i * 2 * Math.PI / entity.sides + Math.PI / 2 + entity.rotation;
+
+        if (entity.x - Math.cos(angle) * entity.radius < entity.x - entity.leftOffset)
+            entity.leftOffset = Math.cos(angle) * entity.radius;
+
+        if (entity.x - Math.cos(angle) * entity.radius > entity.x + entity.rightOffset)
+            entity.rightOffset = Math.abs(Math.cos(angle)) * entity.radius;
+
+        if (entity.y - Math.sin(angle) * entity.radius < entity.y - entity.topOffset)
+            entity.topOffset = Math.sin(angle) * entity.radius;
+
+        if (entity.y - Math.sin(angle) * entity.radius > entity.y + entity.bottomOffset)
+            entity.bottomOffset = Math.abs(Math.sin(angle)) * entity.radius;
+    }
+}
+
+/**
+ * Détecte la collision entre deux entités.
+ * @param entity1 Première entité.
+ * @param entity2 Deuxième entité.
+ */
+function detectCollision(entity1, entity2) {
+
+    let upperRight = entity1.x - entity1.leftOffset <= entity2.x + entity2.rightOffset &&
+        entity2.x + entity2.rightOffset <= entity1.x + entity1.rightOffset &&
+        entity1.y - entity1.topOffset <= entity2.y - entity2.topOffset &&
+        entity2.y - entity2.topOffset <= entity1.y + entity1.bottomOffset;
+
+    let upperLeft = entity1.x - entity1.leftOffset <= entity2.x - entity2.leftOffset &&
+        entity2.x - entity2.leftOffset <= entity1.x + entity1.rightOffset &&
+        entity1.y - entity1.topOffset <= entity2.y - entity2.topOffset &&
+        entity2.y - entity2.topOffset <= entity1.y + entity1.bottomOffset;
+
+    let lowerRight = entity1.x - entity1.leftOffset <= entity2.x + entity2.rightOffset &&
+        entity2.x + entity2.rightOffset <= entity1.x + entity1.rightOffset &&
+        entity1.y - entity1.topOffset <= entity2.y + entity2.bottomOffset &&
+        entity2.y + entity2.bottomOffset <= entity1.y + entity1.bottomOffset;
+
+    let lowerLeft = entity1.x - entity1.leftOffset <= entity2.x - entity2.leftOffset &&
+        entity2.x - entity2.leftOffset <= entity1.x + entity1.rightOffset &&
+        entity1.y - entity1.topOffset <= entity2.y + entity2.bottomOffset &&
+        entity2.y + entity2.bottomOffset <= entity1.y + entity1.bottomOffset;
+    
+    return upperLeft || upperRight || lowerLeft || lowerRight;
+}
+
+class Entity {
 
     context;
     x;
     y;
+
+    alive = true;
+
+    leftOffset = 0;
+    rightOffset = 0;
+    topOffset = 0;
+    bottomOffset = 0;
+
+    constructor(context, x, y) {
+        this.context = context;
+        this.x = x;
+        this.y = y;
+    }
+
+}
+
+class Projectile extends Entity {
+
     velocity;
 
     traveledDistance = 0;
-    alive = true;
 
     leftOffset = PROJECTILE_WIDTH / 2;
     rightOffset = PROJECTILE_WIDTH / 2;
@@ -198,9 +272,7 @@ class Projectile {
     topOffset = PROJECTILE_HEIGHT / 2;
 
     constructor(context, x, y, velocity) {
-        this.context = context;
-        this.x = x;
-        this.y = y;
+        super(context, x, y);
         this.velocity = velocity;
     }
 
@@ -228,31 +300,19 @@ class Projectile {
 
 }
 
-class Player {
+class Player extends Entity {
 
-    context;
-    x;
-    y;
     radius;
     rotation;
-
-    alive = true;
-
-    leftOffset = 0;
-    bottomOffset = 0;
-    rightOffset = 0;
-    topOffset = 0;
 
     sides = 3;
 
     constructor(context, x, y, radius, rotation = 0) {
-        this.context = context;
-        this.x = x;
-        this.y = y;
+        super(context, x, y);
         this.radius = radius;
         this.rotation = rotation;
 
-        this.setOffsets();
+        setOffsets(this);
     }
 
     draw() {
@@ -263,69 +323,18 @@ class Player {
     update(delta) {
 
         entities.projectiles.forEach(p => {
-            if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y - p.topOffset && p.y - p.topOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-                p.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= p.x - p.leftOffset && p.x - p.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y - p.topOffset && p.y - p.topOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-                p.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y + p.bottomOffset && p.y + p.bottomOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-                p.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= p.x - p.leftOffset && p.x - p.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y + p.bottomOffset && p.y + p.bottomOffset <= this.y + this.bottomOffset) {
+            if (detectCollision(this, p)) {
                 this.alive = false;
                 p.alive = false;
             }
         });
 
         entities.enemies.forEach(e => {
-            if (this.x - this.leftOffset <= e.x + e.rightOffset && e.x + e.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= e.y - e.topOffset && e.y - e.topOffset <= this.y + this.bottomOffset)
-                this.alive = false;
-
-            if (this.x - this.leftOffset <= e.x - e.leftOffset && e.x - e.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= e.y - e.topOffset && e.y - e.topOffset <= this.y + this.bottomOffset)
-                this.alive = false;
-
-            if (this.x - this.leftOffset <= e.x + e.rightOffset && e.x + e.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= e.y + e.bottomOffset && e.y + e.bottomOffset <= this.y + this.bottomOffset)
-                this.alive = false;
-
-            if (this.x - this.leftOffset <= e.x - e.leftOffset && e.x - e.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= e.y + e.bottomOffset && e.y + e.bottomOffset <= this.y + this.bottomOffset)
-                this.alive = false;
+            if (detectCollision(this, e)) this.alive = false;
         });
 
         entities.meteorites.forEach(m => {
-            if (this.x - this.leftOffset <= m.x + m.rightOffset && m.x + m.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= m.y - m.topOffset && m.y - m.topOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= m.x - m.leftOffset && m.x - m.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= m.y - m.topOffset && m.y - m.topOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= m.x + m.rightOffset && m.x + m.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= m.y + m.bottomOffset && m.y + m.bottomOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= m.x - m.leftOffset && m.x - m.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= m.y + m.bottomOffset && m.y + m.bottomOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-            }
+            if (detectCollision(this, m)) this.alive = false;
         });
 
         let width = this.context.canvas.width;
@@ -337,29 +346,6 @@ class Player {
         if (keys.ArrowRight && !keys.ArrowLeft && (this.x + this.rightOffset) < width) this.x += delta * PLAYER_VELOCITY;
     }
 
-    setOffsets() {
-        this.topOffset = 0;
-        this.bottomOffset = 0;
-        this.rightOffset = 0;
-        this.leftOffset = 0;
-
-        for (let i = 0; i < this.sides; i++) {
-            let angle = i * 2 * Math.PI / this.sides + Math.PI / 2 + this.rotation;
-
-            if (this.x - Math.cos(angle) * this.radius < this.x - this.leftOffset)
-                this.leftOffset = Math.cos(angle) * this.radius;
-
-            if (this.x - Math.cos(angle) * this.radius > this.x + this.rightOffset)
-                this.rightOffset = Math.abs(Math.cos(angle)) * this.radius;
-
-            if (this.y - Math.sin(angle) * this.radius < this.y - this.topOffset)
-                this.topOffset = Math.sin(angle) * this.radius;
-
-            if (this.y - Math.sin(angle) * this.radius > this.y + this.bottomOffset)
-                this.bottomOffset = Math.abs(Math.sin(angle)) * this.radius;
-        }
-    }
-
     shoot() {
         entities.projectiles.push(
             new Projectile(this.context, this.x, this.y - this.topOffset - PROJECTILE_HEIGHT, PLAYER_VELOCITY)
@@ -368,29 +354,18 @@ class Player {
 
 }
 
-class Enemy {
+class Enemy extends Entity {
 
-    context;
-    x;
-    y;
     radius;
     rotation;
 
     xVelocity;
     yVelocity;
-    alive = true;
-
-    leftOffset = 0;
-    bottomOffset = 0;
-    rightOffset = 0;
-    topOffset = 0;
 
     sides = 3;
 
     constructor(context, x, y, radius, rotation = 0) {
-        this.context = context;
-        this.x = x;
-        this.y = y;
+        super(context, x, y);
         this.radius = radius;
         this.rotation = rotation;
 
@@ -405,56 +380,19 @@ class Enemy {
 
     update(delta) {
         if (this.previousRotation !== null && this.previousRotation !== this.rotation) {
-            this.setOffsets();
+            setOffsets(this);
             this.previousRotation = this.rotation;
         }
 
         entities.projectiles.forEach(p => {
-            if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y - p.topOffset && p.y - p.topOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-                p.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= p.x - p.leftOffset && p.x - p.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y - p.topOffset && p.y - p.topOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-                p.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y + p.bottomOffset && p.y + p.bottomOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-                p.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= p.x - p.leftOffset && p.x - p.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y + p.bottomOffset && p.y + p.bottomOffset <= this.y + this.bottomOffset) {
+            if (detectCollision(this, p)) {
                 this.alive = false;
                 p.alive = false;
             }
         });
 
         entities.meteorites.forEach(m => {
-            if (this.x - this.leftOffset <= m.x + m.rightOffset && m.x + m.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= m.y - m.topOffset && m.y - m.topOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= m.x - m.leftOffset && m.x - m.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= m.y - m.topOffset && m.y - m.topOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= m.x + m.rightOffset && m.x + m.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= m.y + m.bottomOffset && m.y + m.bottomOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-            }
-
-            if (this.x - this.leftOffset <= m.x - m.leftOffset && m.x - m.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= m.y + m.bottomOffset && m.y + m.bottomOffset <= this.y + this.bottomOffset) {
-                this.alive = false;
-            }
+            if (detectCollision(this, m)) this.alive = false;
         });
 
         if (this.xVelocity < 0) {
@@ -479,58 +417,24 @@ class Enemy {
         if (this.xVelocity < 0) this.rotation += Math.PI;
     }
 
-    setOffsets() {
-        this.topOffset = 0;
-        this.bottomOffset = 0;
-        this.rightOffset = 0;
-        this.leftOffset = 0;
-
-        for (let i = 0; i < this.sides; i++) {
-            let angle = i * 2 * Math.PI / this.sides + Math.PI / 2 + this.rotation;
-
-            if (this.x - Math.cos(angle) * this.radius < this.x - this.leftOffset)
-                this.leftOffset = Math.cos(angle) * this.radius;
-
-            if (this.x - Math.cos(angle) * this.radius > this.x + this.rightOffset)
-                this.rightOffset = Math.abs(Math.cos(angle)) * this.radius;
-
-            if (this.y - Math.sin(angle) * this.radius < this.y - this.topOffset)
-                this.topOffset = Math.sin(angle) * this.radius;
-
-            if (this.y - Math.sin(angle) * this.radius > this.y + this.bottomOffset)
-                this.bottomOffset = Math.abs(Math.sin(angle)) * this.radius;
-        }
-    }
-
 }
 
-class Meteorite {
+class Meteorite extends Entity {
 
-    context;
-    x;
-    y;
     radius;
     rotation;
 
     xVelocity;
     yVelocity;
-    alive = true;
-
-    leftOffset = 0;
-    bottomOffset = 0;
-    rightOffset = 0;
-    topOffset = 0;
 
     sides = 7;
 
     constructor(context, x, y, radius, rotation = 0) {
-        this.context = context;
-        this.x = x;
-        this.y = y;
+        super(context, x, y);
         this.radius = radius;
         this.rotation = rotation;
 
-        this.setOffsets();
+        setOffsets(this);
 
         this.xVelocity = (Math.random() + .5) * (this.x < this.context.canvas.width / 2 ? DEFAULT_X_VELOCITY : -DEFAULT_X_VELOCITY);
         this.yVelocity = (Math.random() + .5) * (this.y < this.context.canvas.height / 2 ? DEFAULT_X_VELOCITY : -DEFAULT_X_VELOCITY);
@@ -542,20 +446,10 @@ class Meteorite {
     }
 
     update(delta) {
-        if (this.sides > 5) this.setOffsets();
+        if (this.sides > 5) setOffsets(this);
 
         entities.projectiles.forEach(p => {
-            if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y - p.topOffset && p.y - p.topOffset <= this.y + this.bottomOffset) p.alive = false;
-
-            if (this.x - this.leftOffset <= p.x - p.leftOffset && p.x - p.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y - p.topOffset && p.y - p.topOffset <= this.y + this.bottomOffset) p.alive = false;
-
-            if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y + p.bottomOffset && p.y + p.bottomOffset <= this.y + this.bottomOffset) p.alive = false;
-
-            if (this.x - this.leftOffset <= p.x - p.leftOffset && p.x - p.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= p.y + p.bottomOffset && p.y + p.bottomOffset <= this.y + this.bottomOffset) p.alive = false;
+            if (detectCollision(this, p)) p.alive = false;
         });
 
         if (this.xVelocity < 0) {
@@ -572,29 +466,6 @@ class Meteorite {
         this.x += delta * this.xVelocity;
         this.y += delta * this.yVelocity;
         this.rotation += .1;
-    }
-
-    setOffsets() {
-        this.topOffset = 0;
-        this.bottomOffset = 0;
-        this.rightOffset = 0;
-        this.leftOffset = 0;
-
-        for (let i = 0; i < this.sides; i++) {
-            let angle = i * 2 * Math.PI / this.sides + Math.PI / 2 + this.rotation;
-
-            if (this.x - Math.cos(angle) * this.radius < this.x - this.leftOffset)
-                this.leftOffset = Math.cos(angle) * this.radius;
-
-            if (this.x - Math.cos(angle) * this.radius > this.x + this.rightOffset)
-                this.rightOffset = Math.abs(Math.cos(angle)) * this.radius;
-
-            if (this.y - Math.sin(angle) * this.radius < this.y - this.topOffset)
-                this.topOffset = Math.sin(angle) * this.radius;
-
-            if (this.y - Math.sin(angle) * this.radius > this.y + this.bottomOffset)
-                this.bottomOffset = Math.abs(Math.sin(angle)) * this.radius;
-        }
     }
 
 }
