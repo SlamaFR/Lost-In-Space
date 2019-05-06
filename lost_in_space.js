@@ -61,7 +61,7 @@ function draw(canvas) {
     }
 }
 
-/***
+/**
  * Met à jour toutes les entités du jeu. (Position, vitesse, état, ...)
  */
 function update(delta) {
@@ -156,7 +156,7 @@ function spawnWave(canvas) {
     for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 10; j++) {
             entities.enemies.push(
-                new Enemy(canvas.getContext('2d'), canvas.width * (j + 1) / 11, canvas.height * (i + 1) / 11, ENEMY_SIZE / 2)
+                new Enemy(canvas.getContext('2d'), canvas.width * (j + 1) / 11, -canvas.height * (i + 1) / 11, ENEMY_SIZE / 2)
             );
         }
     }
@@ -185,6 +185,8 @@ class Player {
         this.y = y;
         this.radius = radius;
         this.rotation = rotation;
+
+        this.setOffsets();
     }
 
     draw() {
@@ -222,34 +224,24 @@ class Player {
 
         entities.enemies.forEach(e => {
             if (this.x - this.leftOffset <= e.x + e.rightOffset && e.x + e.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= e.y - e.topOffset && e.y - e.topOffset <= this.y + this.bottomOffset) {
+                this.y - this.topOffset <= e.y - e.topOffset && e.y - e.topOffset <= this.y + this.bottomOffset)
                 this.alive = false;
-                e.alive = false;
-            }
 
             if (this.x - this.leftOffset <= e.x - e.leftOffset && e.x - e.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= e.y - e.topOffset && e.y - e.topOffset <= this.y + this.bottomOffset) {
+                this.y - this.topOffset <= e.y - e.topOffset && e.y - e.topOffset <= this.y + this.bottomOffset)
                 this.alive = false;
-                e.alive = false;
-            }
 
             if (this.x - this.leftOffset <= e.x + e.rightOffset && e.x + e.rightOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= e.y + e.bottomOffset && e.y + e.bottomOffset <= this.y + this.bottomOffset) {
+                this.y - this.topOffset <= e.y + e.bottomOffset && e.y + e.bottomOffset <= this.y + this.bottomOffset)
                 this.alive = false;
-                e.alive = false;
-            }
 
             if (this.x - this.leftOffset <= e.x - e.leftOffset && e.x - e.leftOffset <= this.x + this.rightOffset &&
-                this.y - this.topOffset <= e.y + e.bottomOffset && e.y + e.bottomOffset <= this.y + this.bottomOffset) {
+                this.y - this.topOffset <= e.y + e.bottomOffset && e.y + e.bottomOffset <= this.y + this.bottomOffset)
                 this.alive = false;
-                e.alive = false;
-            }
         });
 
         let width = this.context.canvas.width;
         let height = this.context.canvas.height;
-
-        this.setOffsets();
 
         if (keys.ArrowUp && !keys.ArrowDown && (this.y - this.topOffset) > 0) this.y -= delta * PLAYER_VELOCITY;
         if (keys.ArrowDown && !keys.ArrowUp && (this.y + this.bottomOffset) < height) this.y += delta * PLAYER_VELOCITY;
@@ -324,7 +316,10 @@ class Enemy {
     }
 
     update(delta) {
-        this.setOffsets();
+        if (this.previousRotation !== null && this.previousRotation !== this.rotation) {
+            this.setOffsets();
+            this.previousRotation = this.rotation;
+        }
 
         entities.projectiles.forEach(p => {
             if (this.x - this.leftOffset <= p.x + p.rightOffset && p.x + p.rightOffset <= this.x + this.rightOffset &&
