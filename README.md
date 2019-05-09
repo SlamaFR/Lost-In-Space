@@ -2,7 +2,7 @@
 
 [![Codacy grade](https://img.shields.io/codacy/grade/9368f78cc4434f8888891585ee13a521.svg?label=Codacy%20grade&logo=codacy)](https://app.codacy.com/project/SlamaFR/Lost-In-Space/dashboard)
 
-Lost in space is a JavaScript bases game taking place in space.
+Lost in Space is a JavaScript based game taking place in space.
 
 ## Game summary
 
