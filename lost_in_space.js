@@ -20,7 +20,8 @@ let killedEnemies = 0;
 let entities = {
     "enemies": [],
     "projectiles": [],
-    "meteorites": []
+    "meteorites": [],
+    "powerUps": []
 };
 let keys = {
     "ArrowUp": false,
@@ -63,6 +64,7 @@ function draw(canvas) {
             entities.enemies.forEach((e) => e.draw());
             entities.projectiles.forEach((p) => p.draw());
             entities.meteorites.forEach((m) => m.draw());
+            entities.powerUps.forEach((p) => p.draw())
         } else {
             context.fillStyle = "orange";
             context.textAlign = "center";
@@ -112,6 +114,9 @@ function update(delta) {
     entities.meteorites.forEach((m) => {
         if (m.alive) m.update(delta);
         else entities.meteorites.splice(entities.meteorites.indexOf(m), 1);
+    });
+    entities.powerUps.forEach((p) => {
+        if (!p.alive) entities.powerUps.splice(entities.powerUps.indexOf(p), 1);
     });
 }
 
@@ -239,41 +244,153 @@ function detectCollision(entity1, entity2) {
     return upperLeft || upperRight || lowerLeft || lowerRight;
 }
 
+class SpeedPowerUp {
+
+    constructor() {
+        this.multiplier = 1;
+        this.timeout = 0;
+    }
+
+    activate(timeout) {
+        this.multiplier = 2;
+        this.timeout += timeout;
+    }
+
+    deactivate() {
+        this.multiplier = 1;
+        this.timeout = 0;
+    }
+
+    apply(speed) {
+        return speed * this.multiplier;
+    }
+
+    draw(context, x, y) {
+        drawElement(context, "orange", false, 3, () => {
+            context.arc(x, y, 14, 0, 2 * Math.PI)
+        });
+        drawPolygon(context, x - 4, y, "yellow", 1, 3, 5, Math.PI / 2);
+        drawPolygon(context, x + 3, y, "yellow", 1, 3, 5, Math.PI / 2);
+    }
+
+    setHitBox(entity) {
+        entity.topOffset = (14 + 3);
+        entity.bottomOffset = (14 + 3);
+        entity.leftOffset = (14 + 3);
+        entity.rightOffset = (14 + 3);
+    }
+
+    update(delta) {
+        this.timeout -= delta;
+        if (this.timeout <= 0) this.deactivate();
+    }
+
+}
+
+class MultiShootPowerUp {
+
+    constructor(context) {
+        this.timeout = 0;
+        this.context = context;
+    }
+
+    activate(timeout) {
+        this.timeout += timeout;
+    }
+
+    deactivate() {
+        this.timeout = 0;
+    }
+
+    apply(x, y) {
+        let speed = entities.player.powerUpComponent.speedUp.apply(PLAYER_VELOCITY);
+
+        if (this.timeout > 0) {
+            return [
+                new Projectile(this.context, x - PLAYER_SIZE / 2, y, speed),
+                new Projectile(this.context, x + PLAYER_SIZE / 2, y, speed)
+            ]
+        }
+        return [new Projectile(this.context, x, y, speed)];
+    }
+
+    draw(context, x, y) {
+        drawElement(context, "green", false, 3, () => {
+            context.arc(x, y, 14, 0, 2 * Math.PI)
+        });
+        drawElement(context, "teal", true, 1, () => {
+            context.moveTo(x - 2, y - 8);
+            context.lineTo(x + 2, y - 8);
+            context.lineTo(x + 2, y + 8);
+            context.lineTo(x - 2, y + 8);
+            context.lineTo(x - 2, y - 8);
+        });
+        drawElement(context, "teal", true, 1, () => {
+            context.moveTo(x - 8, y - 2);
+            context.lineTo(x + 8, y - 2);
+            context.lineTo(x + 8, y + 2);
+            context.lineTo(x - 8, y + 2);
+            context.lineTo(x - 8, y - 2);
+        });
+    }
+
+    setHitBox(entity) {
+        entity.topOffset = (14 + 3);
+        entity.bottomOffset = (14 + 3);
+        entity.leftOffset = (14 + 3);
+        entity.rightOffset = (14 + 3);
+    }
+
+    update(delta) {
+        this.timeout -= delta;
+        if (this.timeout <= 0) this.deactivate();
+    }
+
+}
+
+class PowerUpComponent {
+
+    constructor(context) {
+        this.speedUp = new SpeedPowerUp();
+        this.multiShoot = new MultiShootPowerUp(context)
+    }
+
+    update(delta) {
+        this.speedUp.update(delta);
+        this.multiShoot.update(delta);
+    }
+
+}
+
 class Entity {
-
-    context;
-    x;
-    y;
-
-    alive = true;
-
-    leftOffset = 0;
-    rightOffset = 0;
-    topOffset = 0;
-    bottomOffset = 0;
 
     constructor(context, x, y) {
         this.context = context;
         this.x = x;
         this.y = y;
+
+        this.alive = true;
+
+        this.leftOffset = 0;
+        this.rightOffset = 0;
+        this.topOffset = 0;
+        this.bottomOffset = 0;
     }
 
 }
 
 class Projectile extends Entity {
 
-    velocity;
-
-    traveledDistance = 0;
-
-    leftOffset = PROJECTILE_WIDTH / 2;
-    rightOffset = PROJECTILE_WIDTH / 2;
-    bottomOffset = PROJECTILE_HEIGHT / 2;
-    topOffset = PROJECTILE_HEIGHT / 2;
-
     constructor(context, x, y, velocity) {
         super(context, x, y);
         this.velocity = velocity;
+
+        this.traveledDistance = 0;
+
+        this.leftOffset = PROJECTILE_WIDTH / 2;
+        this.rightOffset = PROJECTILE_WIDTH / 2;
+        this.bottomOffset = PROJECTILE_HEIGHT / 2;
+        this.topOffset = PROJECTILE_HEIGHT / 2;
     }
 
     draw() {
@@ -302,15 +419,13 @@ class Projectile extends Entity {
 
 class Player extends Entity {
 
-    radius;
-    rotation;
-
-    sides = 3;
-
     constructor(context, x, y, radius, rotation = 0) {
         super(context, x, y);
         this.radius = radius;
         this.rotation = rotation;
+
+        this.sides = 3;
+        this.powerUpComponent = new PowerUpComponent(this.context);
 
         setOffsets(this);
     }
@@ -321,6 +436,9 @@ class Player extends Entity {
     }
 
     update(delta) {
+        setOffsets(this);
+
+        this.powerUpComponent.update(delta);
 
         entities.projectiles.forEach((p) => {
             if (detectCollision(this, p)) {
@@ -337,32 +455,34 @@ class Player extends Entity {
             if (detectCollision(this, m)) this.alive = false;
         });
 
+        entities.powerUps.forEach((p) => {
+            if (detectCollision(this, p)) {
+                p.use();
+            }
+        });
+
         let width = this.context.canvas.width;
         let height = this.context.canvas.height;
 
-        if (keys.ArrowUp && !keys.ArrowDown && (this.y - this.topOffset) > 0) this.y -= delta * PLAYER_VELOCITY;
-        if (keys.ArrowDown && !keys.ArrowUp && (this.y + this.bottomOffset) < height) this.y += delta * PLAYER_VELOCITY;
-        if (keys.ArrowLeft && !keys.ArrowRight && (this.x - this.leftOffset) > 0) this.x -= delta * PLAYER_VELOCITY;
-        if (keys.ArrowRight && !keys.ArrowLeft && (this.x + this.rightOffset) < width) this.x += delta * PLAYER_VELOCITY;
+        let speed = this.powerUpComponent.speedUp.apply(PLAYER_VELOCITY);
+
+        if (keys.ArrowUp && !keys.ArrowDown && (this.y - this.topOffset) > 0) this.y -= delta * speed;
+        if (keys.ArrowDown && !keys.ArrowUp && (this.y + this.bottomOffset) < height) this.y += delta * speed;
+        if (keys.ArrowLeft && !keys.ArrowRight && (this.x - this.leftOffset) > 0) this.x -= delta * speed;
+        if (keys.ArrowRight && !keys.ArrowLeft && (this.x + this.rightOffset) < width) this.x += delta * speed;
     }
 
     shoot() {
-        entities.projectiles.push(
-            new Projectile(this.context, this.x, this.y - this.topOffset - PROJECTILE_HEIGHT, PLAYER_VELOCITY)
-        );
+        if (!this.alive) return;
+
+        this.powerUpComponent.multiShoot.apply(this.x, this.y - this.topOffset - PROJECTILE_HEIGHT).forEach(p => {
+            entities.projectiles.push(p);
+        });
     }
 
 }
 
 class Enemy extends Entity {
-
-    radius;
-    rotation;
-
-    xVelocity;
-    yVelocity;
-
-    sides = 3;
 
     constructor(context, x, y, radius, rotation = 0) {
         super(context, x, y);
@@ -371,6 +491,8 @@ class Enemy extends Entity {
 
         this.xVelocity = this.x < this.context.canvas.width / 2 ? DEFAULT_X_VELOCITY : -DEFAULT_X_VELOCITY;
         this.yVelocity = DEFAULT_Y_VELOCITY;
+
+        this.sides = 3;
     }
 
     draw() {
@@ -421,14 +543,6 @@ class Enemy extends Entity {
 
 class Meteorite extends Entity {
 
-    radius;
-    rotation;
-
-    xVelocity;
-    yVelocity;
-
-    sides = 7;
-
     constructor(context, x, y, radius, rotation = 0) {
         super(context, x, y);
         this.radius = radius;
@@ -438,6 +552,8 @@ class Meteorite extends Entity {
 
         this.xVelocity = (Math.random() + .5) * (this.x < this.context.canvas.width / 2 ? DEFAULT_X_VELOCITY : -DEFAULT_X_VELOCITY);
         this.yVelocity = (Math.random() + .5) * (this.y < this.context.canvas.height / 2 ? DEFAULT_X_VELOCITY : -DEFAULT_X_VELOCITY);
+
+        this.sides = 7;
     }
 
     draw() {
@@ -446,7 +562,7 @@ class Meteorite extends Entity {
     }
 
     update(delta) {
-        if (this.sides > 5) setOffsets(this);
+        setOffsets(this);
 
         entities.projectiles.forEach((p) => {
             if (detectCollision(this, p)) p.alive = false;
@@ -470,6 +586,29 @@ class Meteorite extends Entity {
 
 }
 
+class PowerUp extends Entity {
+
+    constructor(context, x, y, powerUp, time) {
+        super(context, x, y);
+        this.powerUp = powerUp;
+        this.time = time;
+
+        powerUp.setHitBox(this);
+    }
+
+    draw() {
+        this.powerUp.draw(this.context, this.x, this.y);
+
+        if (debugging) drawHitBox(this);
+    }
+
+    use() {
+        this.alive = false;
+        this.powerUp.activate(this.time);
+    }
+
+}
+
 /**
  * Déclenche une vague de 30 vaisseaux ennemis et 10 météorites.
  */
@@ -478,6 +617,17 @@ function spawnWave(canvas) {
     if (!entities.player.alive) return;
 
     if (killedEnemies >= OBJECTIVE) return;
+
+    let x = canvas.width * Math.random();
+    let y = canvas.height * Math.random();
+
+    if (Math.random() > .7) entities.powerUps.push(new PowerUp(
+        canvas.getContext("2d"),
+        x,
+        y,
+        entities.player.powerUpComponent[Math.random() > .5 ? "speedUp" : "multiShoot"],
+        15
+    ));
 
     for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 10; j++) {
