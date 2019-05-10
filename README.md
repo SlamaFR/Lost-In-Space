@@ -20,6 +20,14 @@ Before you leave, you have a little tinkering your ship by adding to the front a
 - Shoot using space bar.
 - *(Toggle on/off debug using `I`)*
 
+### Power-Ups
+
+There is two power-ups in the game :
+ - Speed multiplier (10s),
+ - Double gun upgrade (15s).
+ 
+Power-ups spawn among ships wave at random location.
+
 ### Additional information
 
 Ships spawn by waves of 30. 
