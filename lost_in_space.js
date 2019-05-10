@@ -64,7 +64,7 @@ function draw(canvas) {
             entities.enemies.forEach((e) => e.draw());
             entities.projectiles.forEach((p) => p.draw());
             entities.meteorites.forEach((m) => m.draw());
-            entities.powerUps.forEach((p) => p.draw())
+            entities.powerUps.forEach((p) => p.draw());
         } else {
             context.fillStyle = "orange";
             context.textAlign = "center";
@@ -244,7 +244,7 @@ function detectCollision(entity1, entity2) {
     return upperLeft || upperRight || lowerLeft || lowerRight;
 }
 
-class SpeedPowerUp {
+class Speed {
 
     constructor() {
         this.multiplier = 1;
@@ -287,7 +287,7 @@ class SpeedPowerUp {
 
 }
 
-class MultiShootPowerUp {
+class DoubleGun {
 
     constructor(context) {
         this.timeout = 0;
@@ -309,14 +309,14 @@ class MultiShootPowerUp {
             return [
                 new Projectile(this.context, x - PLAYER_SIZE / 2, y, speed),
                 new Projectile(this.context, x + PLAYER_SIZE / 2, y, speed)
-            ]
+            ];
         }
         return [new Projectile(this.context, x, y, speed)];
     }
 
     draw(context, x, y) {
         drawElement(context, "green", false, 3, () => {
-            context.arc(x, y, 14, 0, 2 * Math.PI)
+            context.arc(x, y, 14, 0, 2 * Math.PI);
         });
         drawElement(context, "teal", true, 1, () => {
             context.moveTo(x - 2, y - 8);
@@ -351,8 +351,8 @@ class MultiShootPowerUp {
 class PowerUpComponent {
 
     constructor(context) {
-        this.speedUp = new SpeedPowerUp();
-        this.multiShoot = new MultiShootPowerUp(context)
+        this.speedUp = new Speed();
+        this.multiShoot = new DoubleGun(context);
     }
 
     update(delta) {
@@ -475,7 +475,9 @@ class Player extends Entity {
     shoot() {
         if (!this.alive) return;
 
-        this.powerUpComponent.multiShoot.apply(this.x, this.y - this.topOffset - PROJECTILE_HEIGHT).forEach(p => {
+        this.powerUpComponent.multiShoot
+            .apply(this.x, this.y - this.topOffset - PROJECTILE_HEIGHT)
+            .forEach((p) => {
             entities.projectiles.push(p);
         });
     }
